@@ -1,0 +1,63 @@
+{
+    "name": "Pediatric Acute Care Data Mirror",
+    "namespace": "Stanford\\PACE",
+    "description": "This module mirrors Rhapsode data in REDCap",
+    "documentation": "README.md",
+    "authors": [
+        {
+            "name": "Jordan Schultz",
+            "email": "jmschult@stanford.edu",
+            "institution": "Stanford University"
+        }
+    ],
+    "framework-version": 13,
+
+    "enable-every-page-hooks-on-system-pages": false,
+
+    "enable-no-auth-logging": true,
+
+    "system-settings": [
+        {
+            "key": "rhapsode-username",
+            "name": "<b>Rhapsode Username</b><br>Login username used to authenticate REST calls",
+            "required": true,
+            "type": "text"
+        },
+        {
+            "key": "rhapsode-password",
+            "name": "<b>Rhapsode Password</b><br>Login password used to authenticate REST calls",
+            "required": true,
+            "type": "text"
+        },
+        {
+            "key": "enable-system-debug-logging",
+            "name": "<b>Enable Debug Logging (system-wide)</b><i>(optional)</i> Requires installation and configuration of emLogger",
+            "required": false,
+            "type": "checkbox"
+        }
+    ],
+    "project-settings": [
+        {
+            "key": "rhapsode-url",
+            "name": "<b>Rhapsode API Url</b><br>The API endpoint called on the Rhapsode Client",
+            "required": true,
+            "type": "text"
+        }
+    ],
+    "crons": [
+        {
+            "cron_name": "mirror_rhapsode_data",
+            "cron_description": "This cron will run weekly, hitting the Rhapsode API and massaging data in a format REDCap can consume.",
+            "method": "mirrorRhapsode",
+            "cron_frequency": "604800",
+            "cron_max_run_time": "3600"
+        }
+    ],
+
+    "compatibility": {
+        "php-version-min": "",
+        "php-version-max": "",
+        "redcap-version-min": "11.1.1",
+        "redcap-version-max": ""
+    }
+}

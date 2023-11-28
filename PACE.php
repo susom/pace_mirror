@@ -26,8 +26,8 @@ namespace Stanford\PACE;
 include "emLoggerTrait.php";
 
 use ExternalModules\AbstractExternalModule;
-use ExternalModules\ExternalModules;
 use Exception;
+use REDCap;
 use GuzzleHttp\Exception\GuzzleException;
 
 require_once "classes/Client.php";
@@ -36,15 +36,14 @@ class PACE extends AbstractExternalModule
 {
     use emLoggerTrait;
 
-
     public function __construct()
     {
         parent::__construct();
     }
 
-    public function redcap_every_page_top(){
-        $this->mirrorRhapsode();
-    }
+//    public function redcap_every_page_top(){
+//        $this->mirrorRhapsode();
+//    }
 
     /**
      * @return void
@@ -52,9 +51,49 @@ class PACE extends AbstractExternalModule
      */
     public function mirrorRhapsode(): void
     {
+        // Grab Rhapsode API data and format
         $data = $this->fetch();
         $formatted = $this->formatResponse($data);
+
+        try {
+            // Get all user records
+            $params = array(
+                "return_format" => "json",
+                "fields" => array("screen_surname", "screen_firstname", "participant_id"),
+                "redcap_event_name" => "enrollment_arm_1",
+            );
+
+            $json = json_decode(REDCap::getData($params), true);
+
+            $upload = [];
+
+            foreach($json as $user) {
+                $full = strtolower($user['screen_firstname'] . " " . $user['screen_surname']);
+
+                // If user exists in Rhapsode data
+                if(array_key_exists($full, $formatted)) {
+                    // Build payload for data upload
+                    $currentDate = date('Y-m-d');
+                    $upload[] = array(
+                        "participant_id" => $user['participant_id'],
+                        "learning_progress" => $formatted[$full][0],
+                        "refresher_progress" => $formatted[$full][1],
+                        "latest_activity" => $formatted[$full][2],
+                        "last_updated" => $currentDate,
+                        "redcap_event_name" => 'rhapsode_data_mirr_arm_1'
+                    );
+                }
+            }
+
+            $response = REDCap::saveData('json', json_encode($upload), 'overwrite');
+            if (!empty($response['errors']))
+                throw new Exception("Could not update record with " . json_encode($response['errors']));
+
+        } catch(\Exception $e) {
+            $this->emError($e);
+        }
     }
+
 
     /**
      *
@@ -96,7 +135,7 @@ class PACE extends AbstractExternalModule
             $values = explode(',', $lines[$i]);
 
             // Use the first value (name of the user) as the index in the associative array
-            $username = trim($values[0]);
+            $username = strtolower(trim($values[0]));
 
             // Assign the rest of the values to the user in the associative array
             $data[$username] = array_slice($values, 1);

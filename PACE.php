@@ -28,6 +28,8 @@ include "emLoggerTrait.php";
 use ExternalModules\AbstractExternalModule;
 use ExternalModules\ExternalModules;
 use Exception;
+use GuzzleHttp\Exception\GuzzleException;
+
 require_once "classes/Client.php";
 
 class PACE extends AbstractExternalModule
@@ -41,26 +43,65 @@ class PACE extends AbstractExternalModule
     }
 
     public function redcap_every_page_top(){
-        $this->fetch();
+        $this->mirrorRhapsode();
     }
 
+    /**
+     * @return void
+     * @throws GuzzleException
+     */
+    public function mirrorRhapsode(): void
+    {
+        $data = $this->fetch();
+        $formatted = $this->formatResponse($data);
+    }
 
-    public function fetch(){
-
+    /**
+     *
+     * @return ?string
+     * @throws GuzzleException
+     */
+    public function fetch(): ?string
+    {
         try {
             $user = $this->getSystemSetting('rhapsode-username');
             $pass = $this->getSystemSetting('rhapsode-password');
             $url = $this->getProjectSetting('rhapsode-url');
+
+            if(empty($user) || empty($pass) || empty($url))
+                throw new \Exception("Empty system and / or project settings");
+
             $client = new Client($user, $pass);
-            $response = $client->createRequest('GET', $url);
+            return $client->createRequest('GET', $url);
 
         } catch(\Exception $e) {
-            echo ($e);
+            $this->emError($e);
+            return null;
         }
-
     }
 
-    public function mirrorRhapsode(){
+    /**
+     * Return an associative array of names with each of the following values:
+     * Initial Learning Progress, Refresher Progress, Latest Activity
+     * @param string $data
+     * @return array
+     */
+    public function formatResponse(string $data): array
+    {
+        $lines = explode("\n", $data);
+        $data = [];
 
+        // Iterate through each line (skipping the first line with headers) and explode it into an array of values
+        for ($i = 1; $i < count($lines); $i++) {
+            $values = explode(',', $lines[$i]);
+
+            // Use the first value (name of the user) as the index in the associative array
+            $username = trim($values[0]);
+
+            // Assign the rest of the values to the user in the associative array
+            $data[$username] = array_slice($values, 1);
+        }
+
+        return $data;
     }
 }

@@ -17,8 +17,16 @@ class Client extends \GuzzleHttp\Client
         $this->setPassword($pass);
     }
 
-    public function createRequest($method, $url = '', array $options = [])
+    /**
+     * @param $method
+     * @param string $url
+     * @param array $options
+     * @return string
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
+    public function createRequest($method, string $url = '', array $options = []): string
     {
+        //Set default options if none provided
         if(empty($options)) {
             $options = [
                 'headers' => [
@@ -28,18 +36,16 @@ class Client extends \GuzzleHttp\Client
             ];
         }
 
+        // Make HTTP request
         $response = parent::request($method, $url, $options);
         $code = $response->getStatusCode();
 
-        if ($code == 200 || $code == 201 || $code == 202) {
-            $content = $response->getBody()->getContents();
-            if (is_array(json_decode($content, true))) {
-                return json_decode($content, true);
-            }
-
-            return $content;
+        // Check if the response status code is in the success range
+        if (in_array($code, [200, 201, 202])) {
+            // Retrieve and return the response content
+            return $response->getBody()->getContents();
         } else {
-            throw new \Exception("Request has failed: $response");
+            throw new \Exception("Request has failed unexpectedly: $response");
         }
     }
 
@@ -51,7 +57,6 @@ class Client extends \GuzzleHttp\Client
     {
         return $this->username;
     }
-
 
     /**
      * @return string

@@ -91,6 +91,7 @@ class PACE extends AbstractExternalModule
 
         } catch(\Exception $e) {
             $this->emError($e);
+            \REDCap::logEvent("Error: $e");
         }
     }
 

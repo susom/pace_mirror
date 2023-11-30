@@ -2,58 +2,49 @@
 
 namespace Stanford\PACE;
 
-use function PHPUnit\Framework\isEmpty;
+use GuzzleHttp\Client as GuzzleHttpClient;
+use GuzzleHttp\Exception\GuzzleException;
 
-class Client extends \GuzzleHttp\Client
+class Client extends GuzzleHttpClient
 {
-    private string $url;
     private string $username;
     private string $password;
 
-    public function __construct(string $user, string $pass)
+    public function __construct(string $username, string $password)
     {
         parent::__construct();
-        $this->setUsername($user);
-        $this->setPassword($pass);
+        $this->setCredentials($username, $password);
     }
 
     /**
-     * @param $method
+     * @param string $method
      * @param string $url
      * @param array $options
      * @return string
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \GuzzleHttp\Exception\GuzzleException|\Exception
      */
-    public function createRequest($method, string $url = '', array $options = []): string
+    public function createRequest(string $method, string $url = '', array $options = []): string
     {
-        //Set default options if none provided
-        if(empty($options)) {
-            $options = [
-                'headers' => [
-                    'Authorization' => 'Basic ' . base64_encode($this->getUsername() . ':' . $this->getPassword()),
-                    'Accept' => 'application/json'
-                ]
-            ];
-        }
+        $options = $this->setDefaultOptions($options);
 
-        // Make HTTP request
-        $response = parent::request($method, $url, $options);
-        $code = $response->getStatusCode();
+        try {
+            $response = parent::request($method, $url, $options);
+            $code = $response->getStatusCode();
 
-        // Check if the response status code is in the success range
-        if (in_array($code, [200, 201, 202])) {
-            // Retrieve and return the response content
-            return $response->getBody()->getContents();
-        } else {
-            throw new \Exception("Request has failed unexpectedly: $response");
+            if (in_array($code, [200, 201, 202])) {
+                return $response->getBody()->getContents();
+            } else {
+                throw new \Exception("Request has failed unexpectedly: $response");
+            }
+        } catch (GuzzleException $e) {
+            throw new \Exception("Guzzle request failed: " . $e->getMessage());
         }
     }
-
 
     /**
      * @return string
      */
-    public function getUsername()
+    public function getUsername(): string
     {
         return $this->username;
     }
@@ -61,20 +52,39 @@ class Client extends \GuzzleHttp\Client
     /**
      * @return string
      */
-    public function getPassword()
+    public function getPassword(): string
     {
         return $this->password;
     }
 
-    public function setUsername(string $username): void
+    /**
+     * Set default options if none provided
+     *
+     * @param array $options
+     * @return array
+     */
+    private function setDefaultOptions(array $options): array
+    {
+        if (empty($options)) {
+            $options = [
+                'headers' => [
+                    'Authorization' => 'Basic ' . base64_encode($this->getUsername() . ':' . $this->getPassword()),
+                    'Accept' => 'application/json',
+                ],
+            ];
+        }
+        return $options;
+    }
+
+    /**
+     * Set the username and password
+     *
+     * @param string $username
+     * @param string $password
+     */
+    private function setCredentials(string $username, string $password): void
     {
         $this->username = $username;
-    }
-
-    public function setPassword(string $password): void
-    {
         $this->password = $password;
     }
-
 }
-

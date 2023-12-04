@@ -7,13 +7,14 @@ use GuzzleHttp\Exception\GuzzleException;
 
 class Client extends GuzzleHttpClient
 {
-    private string $username;
-    private string $password;
+    private ?string $username;
+    private ?string $password;
 
-    public function __construct(string $username, string $password)
+    public function __construct(?string $username, ?string $password)
     {
         parent::__construct();
-        $this->setCredentials($username, $password);
+        if($username && $password)
+            $this->setCredentials($username, $password);
     }
 
     /**

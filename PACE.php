@@ -41,9 +41,32 @@ class PACE extends AbstractExternalModule
         parent::__construct();
     }
 
-//    public function redcap_every_page_top(){
-//        $this->mirrorRhapsode();
-//    }
+    /**
+     * Function called by cron to inject PID
+     * @return void
+     * @throws GuzzleException
+     */
+    public function callCron(){
+        try {
+            $client = new Client(null, null);
+            $projects = $this->framework->getProjectsWithModuleEnabled();
+            $url = $this->getUrl("cron/mirrorRhapsode.php", true);
+
+            $options = [
+                'headers' => [
+                    'Accept' => 'application/json',
+                ],
+            ];
+
+            foreach($projects as $pid){
+                $client->createRequest("GET", ($url . "&pid=$pid"), $options);
+            }
+        } catch (\Exception $e) {
+            $this->emError($e);
+            \REDCap::logEvent("Cron failed: $e");
+        }
+
+    }
 
     /**
      * @return void

@@ -79,6 +79,12 @@ class PACE extends AbstractExternalModule
         $formatted = $this->formatResponse($data);
 
         try {
+            $project_settings = $this->getProjectSettings();
+
+            // Grab event name
+            $events = REDCap::getEventNames(TRUE);
+            $event_name = $events[$project_settings["rhapsode_event"]];
+
             // Get all user records
             $params = array(
                 "return_format" => "json",
@@ -99,11 +105,11 @@ class PACE extends AbstractExternalModule
                     $currentDate = date('Y-m-d');
                     $upload[] = array(
                         "participant_id" => $user['participant_id'],
-                        "learning_progress" => $formatted[$full][0],
-                        "refresher_progress" => $formatted[$full][1],
-                        "latest_activity" => $formatted[$full][2],
-                        "last_updated" => $currentDate,
-                        "redcap_event_name" => 'rhapsode_data_mirr_arm_1'
+                        $project_settings["rhapsode_learning_progress"] => $formatted[$full][0],
+                        $project_settings["rhapsode_refresher_progress"] => $formatted[$full][1],
+                        $project_settings["rhapsode_latest_activity"] => $formatted[$full][2],
+                        $project_settings["rhapsode_last_updated"] => $currentDate,
+                        "redcap_event_name" => $event_name
                     );
                 }
             }

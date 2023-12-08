@@ -46,6 +46,36 @@
             "name": "<b>Rhapsode API Url</b><br>The API endpoint called on the Rhapsode Client",
             "required": true,
             "type": "text"
+        },
+        {
+            "key": "rhapsode_learning_progress",
+            "name": "<b>Learning Progress Field</b><br>REDCap Field that learning progress % <i>(Rhapsode variable)</i> will be mirrored to",
+            "required": true,
+            "type": "field-list"
+        },
+        {
+            "key": "rhapsode_refresher_progress",
+            "name": "<b>Refresher Progress Field</b><br>REDCap Field that refresher progress % <i>(Rhapsode variable)</i> will be mirrored to",
+            "required": true,
+            "type": "field-list"
+        },
+        {
+            "key": "rhapsode_latest_activity",
+            "name": "<b>Latest Activity</b><br>REDCap Field that latest activity date <i>(Rhapsode variable)</i> will be mirrored to",
+            "required": true,
+            "type": "field-list"
+        },
+        {
+            "key": "rhapsode_last_updated",
+            "name": "<b>Last Updated</b><br>REDCap Field that records the timestamp of last CRON run",
+            "required": true,
+            "type": "field-list"
+        },
+        {
+            "key": "rhapsode_event",
+            "name": "<b>Event</b><br>REDCap event encapsulating the above fields",
+            "required": true,
+            "type": "event-list"
         }
     ],
     "crons": [

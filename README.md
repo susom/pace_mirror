@@ -13,14 +13,16 @@ Note: Current credentials only have access to surveys in Rhapsode created by **s
 
 Cron is currently configured to run once a week and will overwrite previous data.
 
-The module will mirror Rhapsode data into the following REDCap fields:
+This module will allow you to mirror the following Rhapsode data into selected REDCap fields (designated in project settings):
 
-- `learning_progress`
-- `refresher_progress`
-- `latest_activity`
-- `last_updated`
+- `Learning Progress`
+- `Refresher Progress`
+- `Latest Activity`
 
-Example response payload:
+The following fields are automatically updated per record
+- `Last Updated`
+
+Example response payload from Rhapsode API:
 
 ```text
 Learner,Initial Learning Progress,Refresher Progress,Latest Activity
@@ -29,3 +31,4 @@ Edward,27%,4%,2023-08-09
 Kasaba,67%,2%,2023-09-28
 Martha,33%,0%,2023-09-15
 ```
+

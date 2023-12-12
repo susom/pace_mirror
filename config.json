@@ -20,6 +20,18 @@
         "cron/mirrorRhapsode"
     ],
 
+    "links": {
+        "project": [
+            {
+                "name": "Refresh Rhapsode Data",
+                "icon": "gear",
+                "url": "cron/mirrorRhapsode.php",
+                "show-header-and-footer": true
+            }
+        ]
+    },
+
+
     "system-settings": [
         {
             "key": "rhapsode-username",

@@ -41,12 +41,22 @@ class PACE extends AbstractExternalModule
         parent::__construct();
     }
 
+    function redcap_module_link_check_display($project_id, $link)
+    {
+        if (isset($link) && array_key_exists('url', $link) && str_contains($link['url'], 'pace_data_mirror&page=cron%2FmirrorRhapsode')) {
+            $link['url'] = $link['url'] . '&manual=1';
+        }
+        return $link;
+    }
+
+
     /**
      * Function called by cron to inject PID
      * @return void
      * @throws GuzzleException
      */
-    public function callCron(){
+    public function callCron()
+    {
         try {
             $client = new Client(null, null);
             $projects = $this->framework->getProjectsWithModuleEnabled();
@@ -58,7 +68,7 @@ class PACE extends AbstractExternalModule
                 ],
             ];
 
-            foreach($projects as $pid){
+            foreach ($projects as $pid) {
                 $client->createRequest("GET", ($url . "&pid=$pid"), $options);
             }
         } catch (\Exception $e) {
@@ -69,59 +79,104 @@ class PACE extends AbstractExternalModule
     }
 
     /**
+     * @param $current_event
+     * @param $ending_event
+     * @return string
+     */
+    public function updateCurrentEvent($current_event, $ending_event)
+    {
+        if ($current_event === $ending_event) {
+            $this->setProjectSetting("current_event", "Done");
+        } else { //Increment event name by 1
+            $expl = explode("_", $current_event);
+            $expl[1] = strval(intval($expl[1]) + 1);
+            $fin = implode("_", $expl);
+            $this->setProjectSetting("current_event", $fin);
+        }
+
+    }
+
+    /**
+     * @param string $type
      * @return void
      * @throws GuzzleException
      */
-    public function mirrorRhapsode(): void
+    public function mirrorRhapsode($type): void
     {
-        // Grab Rhapsode API data and format
-        $data = $this->fetch();
-        $formatted = $this->formatResponse($data);
+        $project_settings = $this->getProjectSettings();
+        if($project_settings["current_event"] !== "Done") {
 
-        try {
-            $project_settings = $this->getProjectSettings();
+            // Grab Rhapsode API data and format
+            $data = $this->fetch();
+            $formatted = $this->formatResponse($data);
 
-            // Grab event name
-            $events = REDCap::getEventNames(TRUE);
-            $event_name = $events[$project_settings["rhapsode_event"]];
+            try {
+                // Grab event name
+                $events = REDCap::getEventNames(TRUE);
 
-            // Get all user records
-            $params = array(
-                "return_format" => "json",
-                "fields" => array("screen_surname", "screen_firstname", "participant_id"),
-                "redcap_event_name" => "enrollment_arm_1",
-            );
-
-            $json = json_decode(REDCap::getData($params), true);
-
-            $upload = [];
-
-            foreach($json as $user) {
-                $full = strtolower($user['screen_firstname'] . " " . $user['screen_surname']);
-
-                // If user exists in Rhapsode data
-                if(array_key_exists($full, $formatted)) {
-                    // Build payload for data upload
-                    $currentDate = date('Y-m-d');
-                    $upload[] = array(
-                        "participant_id" => $user['participant_id'],
-                        $project_settings["rhapsode_learning_progress"] => $formatted[$full][0],
-                        $project_settings["rhapsode_refresher_progress"] => $formatted[$full][1],
-                        $project_settings["rhapsode_latest_activity"] => $formatted[$full][2],
-                        $project_settings["rhapsode_last_updated"] => $currentDate,
-                        "redcap_event_name" => $event_name
-                    );
+                if (empty($project_settings["current_event"])) {
+                    $event_name = $events[$project_settings["start_event"]];
+                } else {
+                    $event_name = $project_settings["current_event"];
                 }
+
+                // Get all user records
+                $params = array(
+                    "return_format" => "json",
+                    "fields" => array("screen_surname", "screen_firstname", "participant_id"),
+                    "redcap_event_name" => "enrollment_arm_1",
+                );
+
+                $json = json_decode(REDCap::getData($params), true);
+
+                $upload = [];
+
+                foreach ($json as $user) {
+                    $full = strtolower($user['screen_firstname'] . " " . $user['screen_surname']);
+
+                    // If user exists in Rhapsode data
+                    if (array_key_exists($full, $formatted)) {
+                        // Build payload for data upload
+                        $currentDate = date('Y-m-d');
+                        $upload[] = array(
+                            "participant_id" => $user['participant_id'],
+                            $project_settings["rhapsode_learning_progress"] => str_replace("%", '', $formatted[$full][0]),
+                            $project_settings["rhapsode_refresher_progress"] => str_replace("%", '', $formatted[$full][1]),
+                            $project_settings["rhapsode_latest_activity"] => $formatted[$full][2],
+                            "redcap_event_name" => $event_name
+                        );
+                    }
+                }
+
+                $response = REDCap::saveData('json', json_encode($upload), 'overwrite');
+
+                if (!empty($response['errors'])) {
+                    throw new Exception("Could not update record with " . json_encode($response['errors']));
+                } else { //Success, update current event
+                    if($type !== "manual")
+                        $this->updateCurrentEvent($event_name, $events[$project_settings["end_event"]]);
+                }
+
+
+            } catch (\Exception $e) {
+                $this->emError($e);
+                \REDCap::logEvent("Error: $e");
             }
-
-            $response = REDCap::saveData('json', json_encode($upload), 'overwrite');
-            if (!empty($response['errors']))
-                throw new Exception("Could not update record with " . json_encode($response['errors']));
-
-        } catch(\Exception $e) {
-            $this->emError($e);
-            \REDCap::logEvent("Error: $e");
+        } else {
+            if($type === "manual")
+                \REDCap::logEvent("Manual data pull failed: Rhapsode pull requested with a done designation in project settings");
+            else
+                \REDCap::logEvent("Cron failed: Rhapsode pull requested with a done designation in project settings");
         }
+
+    }
+
+    /**
+     * @return void
+     */
+    public function logManualTrigger()
+    {
+        \REDCap::logEvent("Manual refresh triggered");
     }
 
 
@@ -137,13 +192,13 @@ class PACE extends AbstractExternalModule
             $pass = $this->getSystemSetting('rhapsode-password');
             $url = $this->getProjectSetting('rhapsode-url');
 
-            if(empty($user) || empty($pass) || empty($url))
+            if (empty($user) || empty($pass) || empty($url))
                 throw new \Exception("Empty system and / or project settings");
 
             $client = new Client($user, $pass);
             return $client->createRequest('GET', $url);
 
-        } catch(\Exception $e) {
+        } catch (\Exception $e) {
             $this->emError($e);
             return null;
         }
@@ -163,9 +218,17 @@ class PACE extends AbstractExternalModule
         // Iterate through each line (skipping the first line with headers) and explode it into an array of values
         for ($i = 1; $i < count($lines); $i++) {
             $values = explode(',', $lines[$i]);
+            $name = explode(' ', trim($values[0]));
+
+            if (($key = array_search("", $name)) !== false) {
+                unset($name[$key]);
+                $values[0] = implode(" ", $name);
+            }
+
 
             // Use the first value (name of the user) as the index in the associative array
-            $username = strtolower(trim($values[0]));
+            $username = strtolower($values[0]);
+            str_replace(" ", "", $username);
 
             // Assign the rest of the values to the user in the associative array
             $data[$username] = array_slice($values, 1);

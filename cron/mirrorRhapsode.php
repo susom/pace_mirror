@@ -5,10 +5,16 @@ namespace Stanford\PACE;
 /** @var PACE $module */
 
 $startTS = microtime(true);
+$type = "cron";
 
-$module->mirrorRhapsode();
+if(isset($_GET["manual"])) {
+    $module->logManualTrigger();
+    $type = "manual";
+}
+
+$module->mirrorRhapsode($type);
 $time = round(microtime(true) - $startTS, 3);
-$module->emLog("[" . $module->getProjectId() . "]" . " Duration of run: " . ($time));
+$module->emLog("[" . $module->getProjectId() . "]" . " Duration of run: " . ($time) . " of type $type");
 
 ?>
 

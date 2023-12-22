@@ -43,6 +43,7 @@ class PACE extends AbstractExternalModule
 
     function redcap_module_link_check_display($project_id, $link)
     {
+        //Add manual parameter to link display to triage when hitting mirrorRhapsode.php
         if (isset($link) && array_key_exists('url', $link) && str_contains($link['url'], 'pace_data_mirror&page=cron%2FmirrorRhapsode')) {
             $link['url'] = $link['url'] . '&manual=1';
         }
@@ -177,6 +178,13 @@ class PACE extends AbstractExternalModule
     public function logManualTrigger()
     {
         \REDCap::logEvent("Manual refresh triggered");
+    }
+
+    /**
+     * @return void
+     */
+    public function logCronTrigger(){
+        \REDCap::logEvent("Cron started");
     }
 
 

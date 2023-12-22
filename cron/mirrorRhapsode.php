@@ -10,6 +10,8 @@ $type = "cron";
 if(isset($_GET["manual"])) {
     $module->logManualTrigger();
     $type = "manual";
+} else {
+    $module->logCronTrigger();
 }
 
 $module->mirrorRhapsode($type);

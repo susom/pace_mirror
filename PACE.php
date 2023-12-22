@@ -82,9 +82,8 @@ class PACE extends AbstractExternalModule
     /**
      * @param $current_event
      * @param $ending_event
-     * @return string
      */
-    public function updateCurrentEvent($current_event, $ending_event)
+    public function updateCurrentEvent($current_event, $ending_event): void
     {
         if ($current_event === $ending_event) {
             $this->setProjectSetting("current_event", "Done");
@@ -94,7 +93,6 @@ class PACE extends AbstractExternalModule
             $fin = implode("_", $expl);
             $this->setProjectSetting("current_event", $fin);
         }
-
     }
 
     /**

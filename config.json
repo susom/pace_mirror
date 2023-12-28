@@ -80,7 +80,7 @@
         {
             "key": "rhapsode_last_updated",
             "name": "<b>Last Updated</b><br>REDCap Field that records the timestamp of last CRON run",
-            "required": true,
+            "required": false,
             "type": "field-list"
         },
         {

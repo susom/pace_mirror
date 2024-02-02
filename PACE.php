@@ -142,7 +142,8 @@ class PACE extends AbstractExternalModule
                             $project_settings["rhapsode_learning_progress"] => str_replace("%", '', $formatted[$full][0]),
                             $project_settings["rhapsode_refresher_progress"] => str_replace("%", '', $formatted[$full][1]),
                             $project_settings["rhapsode_latest_activity"] => $formatted[$full][2],
-                            "redcap_event_name" => $event_name
+                            "redcap_event_name" => $event_name,
+                            "weekly_progress_complete" => "2"
                         );
                     }
                 }

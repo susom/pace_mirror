@@ -158,6 +158,42 @@ class PACE extends AbstractExternalModule
                 }
 
 
+                // WHATS APP INTEGRATION STEP
+
+
+//                if($this->checkIntegration()) { //User has enabled both whats app module and pace module, try triggering alerts
+//                    $alerts = $this->fetchAlerts();
+//
+//                    foreach($upload as $val){ //Have to trigger notifications for each user
+//                        foreach($alerts as $alert) {
+//                        //Check each alert to determine if current record user has met any conditions
+//                            $passedLogicTest = REDCap::evaluateLogic($alert['alert_condition'], $this->getProjectId(), $val['participant_id']);
+//                            if($passedLogicTest){
+//                                $body = $this->massageJson($alert['alert_message']);
+//                                $piped_vars = \Piping::replaceVariablesInLabel(json_encode([$body['number']]), $val['participant_id'],
+//                                    null, 1, null, false,
+//                                    $this->getProjectId(), false
+//                                );
+//                                $number = json_decode($piped_vars, true);
+//                                if(!empty($number)){
+//                                    $body['number'] = json_decode($piped_vars, true)[0];
+////                                    $result = \Hooks::call('redcap_email',
+////                                        array("jmschult@stanford.edu", "jmschult@stanford.edu", "inactivity", json_encode($body), null, null, null, null)
+////                                    );
+//                                }
+//                            }
+//                        }
+//
+//
+//
+//                    }
+//                }
+
+
+
+
+
+
             } catch (\Exception $e) {
                 $this->emError($e);
                 \REDCap::logEvent("Error: $e");
@@ -177,6 +213,127 @@ class PACE extends AbstractExternalModule
     public function logManualTrigger()
     {
         \REDCap::logEvent("Manual refresh triggered");
+    }
+
+    /**
+     * Verifies whether what's app alerts EM is also enabled on project
+     * @return boolean
+     */
+    public function checkIntegration()
+    {
+        // check if what's app EM is enabled
+        if ($this->framework->isModuleEnabled('whats-app-alerts')) {
+            return true;
+        } else {
+            REDCap::logEvent('REDCap Whats app alerting EM is not Enabled. No SMS messages will be sent');
+            return false;
+        }
+    }
+
+    private function massageJson($input) {
+        $string = $this->replaceNbsp($input, "  ");
+        $junk = [
+            "<p>",
+            "<br />",
+            "</p>"
+        ];
+        // Remove HTML tags inserted by UI
+        $string = str_replace($junk, '', $string);
+
+        // See if it is valid json
+        list($success, $result) = $this->jsonToObject($string);
+
+        if ($success) {
+            return $result;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Try to parse JSON into a php object and handle errors
+     * @param $string
+     * @param $assoc
+     * @return array
+     */
+    private function jsonToObject($string, $assoc = true)
+    {
+        // decode the JSON data
+        $result = json_decode($string, $assoc);
+
+        // switch and check possible JSON errors
+        switch (json_last_error()) {
+            case JSON_ERROR_NONE:
+                $error = ''; // JSON is valid // No error has occurred
+                break;
+            case JSON_ERROR_DEPTH:
+                $error = 'The maximum stack depth has been exceeded.';
+                break;
+            case JSON_ERROR_STATE_MISMATCH:
+                $error = 'Invalid or malformed JSON.';
+                break;
+            case JSON_ERROR_CTRL_CHAR:
+                $error = 'Control character error, possibly incorrectly encoded.';
+                break;
+            case JSON_ERROR_SYNTAX:
+                $error = 'Syntax error, malformed JSON.';
+                break;
+            // PHP >= 5.3.3
+            case JSON_ERROR_UTF8:
+                $error = 'Malformed UTF-8 characters, possibly incorrectly encoded.';
+                break;
+            // PHP >= 5.5.0
+            case JSON_ERROR_RECURSION:
+                $error = 'One or more recursive references in the value to be encoded.';
+                break;
+            // PHP >= 5.5.0
+            case JSON_ERROR_INF_OR_NAN:
+                $error = 'One or more NAN or INF values in the value to be encoded.';
+                break;
+            case JSON_ERROR_UNSUPPORTED_TYPE:
+                $error = 'A value of a type that cannot be encoded was given.';
+                break;
+            default:
+                $error = 'Unknown JSON error occured.';
+                break;
+        }
+
+        if ($error !== '') {
+            return array(false, $error);
+        } else {
+            return array(true, $result);
+        }
+    }
+
+    /**
+     * @param $string
+     * @param $replacement
+     * @return array|string|string[]
+     */
+    private function replaceNbsp ($string, $replacement = '  ') {
+        $funky="|!|";
+        $entities = htmlentities($string, ENT_NOQUOTES, 'UTF-8');
+        $subbed = str_replace("&nbsp; ", $funky, $entities);
+        $decoded = html_entity_decode($subbed);
+        return str_replace($funky, $replacement, $decoded);
+    }
+
+    /**
+     *
+     */
+    public function fetchAlerts(){
+        $pid = $this->getProjectId();
+        $sql = sprintf("SELECT * from redcap_alerts WHERE project_id = $pid AND email_deleted = '0'");
+        $res = db_query($sql);
+        $alerts = [];
+        while ($row = db_fetch_assoc($res))
+        {
+            $alerts[]=$row;
+        }
+//        $data = db_fetch_assoc($res);
+//        foreach($data as $a)
+//            $b = $a;
+        return $alerts;
     }
 
     /**

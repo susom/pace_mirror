@@ -55,9 +55,35 @@
     "project-settings": [
         {
             "key": "rhapsode-url",
-            "name": "<b>Rhapsode API Url</b><br>The API endpoint called on the Rhapsode Client",
+            "name": "<b>Rhapsode API Url Entry</b><br>The API endpoint(s) called on the Rhapsode Client",
             "required": true,
-            "type": "text"
+            "repeatable":true,
+            "type": "sub_settings",
+            "sub_settings":[
+                {
+                    "key": "preset-url",
+                    "name": "<b>API url</b><br>The actual API url to call in each request",
+                    "type": "text",
+                    "required": true
+                },
+                {
+                    "key": "preset-type",
+                    "name": "<b>Learning progress preset</b><br>Set true if the API url for this entry contains the Knowledge & Learning progress fields on Rhapsode",
+                    "type": "dropdown",
+                    "choices": [
+                        {
+                            "name": "False",
+                            "value": 0
+                        },
+                        {
+                            "name": "True",
+                            "value": 1
+                        }
+
+                    ],
+                    "required": true
+                }
+            ]
         },
         {
             "key": "rhapsode_learning_progress",

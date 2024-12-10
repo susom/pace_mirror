@@ -106,7 +106,7 @@ class PACE extends AbstractExternalModule
         if($project_settings["current_event"] !== "Done") {
 
             // Grab Rhapsode API data and format
-            $data = $this->fetch();
+            $data = $this->fetchRhapsodeData();
             $formatted = $this->formatResponse($data);
 
             try {
@@ -122,7 +122,7 @@ class PACE extends AbstractExternalModule
                 // Get all user records
                 $params = array(
                     "return_format" => "json",
-                    "fields" => array("screen_surname", "screen_firstname", "participant_id"),
+                    "fields" => array("screen_surname", "screen_firstname", "participant_id", "consent_time_stamp", "calc_consent_responibilities"),
                     "redcap_event_name" => "enrollment_arm_1",
                 );
 
@@ -148,14 +148,16 @@ class PACE extends AbstractExternalModule
                     }
                 }
 
-                $response = REDCap::saveData('json', json_encode($upload), 'overwrite');
-
-                if (!empty($response['errors'])) {
-                    throw new Exception("Could not update record with " . json_encode($response['errors']));
-                } else { //Success, update current event
-                    if($type !== "manual")
-                        $this->updateCurrentEvent($event_name, $events[$project_settings["end_event"]]);
+                if(sizeof($upload)){
+                    $response = REDCap::saveData('json', json_encode($upload), 'overwrite');
+                    if (!empty($response['errors'])) {
+                        throw new Exception("Could not update record with " . json_encode($response['errors']));
+                    } else { //Success, update current event
+                        if($type !== "manual")
+                            $this->updateCurrentEvent($event_name, $events[$project_settings["end_event"]]);
+                    }
                 }
+
 
 
                 // WHATS APP INTEGRATION STEP
@@ -346,21 +348,32 @@ class PACE extends AbstractExternalModule
 
     /**
      *
-     * @return ?string
+     * @return ?array
      * @throws GuzzleException
      */
-    public function fetch(): ?string
+    public function fetchRhapsodeData(): ?array
     {
         try {
             $user = $this->getSystemSetting('rhapsode-username');
             $pass = $this->getSystemSetting('rhapsode-password');
-            $url = $this->getProjectSetting('rhapsode-url');
+            $urls = $this->getProjectSetting('rhapsode-url');
+            $data = [];
 
-            if (empty($user) || empty($pass) || empty($url))
+            if (empty($user) || empty($pass) || empty($urls))
                 throw new \Exception("Empty system and / or project settings");
 
-            $client = new Client($user, $pass);
-            return $client->createRequest('GET', $url);
+            foreach($urls as $preset) {
+                $query = parse_url($preset, PHP_URL_QUERY);
+                parse_str($query, $params);
+
+                // Access the integer after "preset_id="
+                $presetId = isset($params['preset_id']) ? (int)$params['preset_id'] : null;
+
+                $client = new Client($user, $pass);
+                $data[$presetId] = $client->createRequest('GET', $preset);
+            }
+
+            return $data;
 
         } catch (\Exception $e) {
             $this->emError($e);
@@ -371,33 +384,36 @@ class PACE extends AbstractExternalModule
     /**
      * Return an associative array of names with each of the following values:
      * Initial Learning Progress, Refresher Progress, Latest Activity
-     * @param string $data
+     * @param array $data
      * @return array
      */
-    public function formatResponse(string $data): array
+    public function formatResponse(array $data): array
     {
-        $lines = explode("\n", $data);
-        $data = [];
+        $ret = [];
+        foreach($data as $preset_id => $entry) {
+            $lines = explode("\n", $entry);
 
-        // Iterate through each line (skipping the first line with headers) and explode it into an array of values
-        for ($i = 1; $i < count($lines); $i++) {
-            $values = explode(',', $lines[$i]);
-            $name = explode(' ', trim($values[0]));
 
-            if (($key = array_search("", $name)) !== false) {
-                unset($name[$key]);
-                $values[0] = implode(" ", $name);
+            // Iterate through each line (skipping the first line with headers) and explode it into an array of values
+            for ($i = 1; $i < count($lines); $i++) {
+                $values = explode(',', $lines[$i]);
+                $name = explode(' ', trim($values[0]));
+
+                if (($key = array_search("", $name)) !== false) {
+                    unset($name[$key]);
+                    $values[0] = implode(" ", $name);
+                }
+
+
+                // Use the first value (name of the user) as the index in the associative array
+                $username = strtolower($values[0]);
+                str_replace(" ", "", $username);
+
+                // Assign the rest of the values to the user in the associative array
+                $ret[$username][$preset_id] = array_slice($values, 1);
+
             }
-
-
-            // Use the first value (name of the user) as the index in the associative array
-            $username = strtolower($values[0]);
-            str_replace(" ", "", $username);
-
-            // Assign the rest of the values to the user in the associative array
-            $data[$username] = array_slice($values, 1);
         }
-
-        return $data;
+        return $ret;
     }
 }

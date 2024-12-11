@@ -95,6 +95,22 @@ class PACE extends AbstractExternalModule
         }
     }
 
+    public function getRefresherPreset(){
+        $project_settings = $this->getProjectSettings();
+        $ret = [];
+
+        $index = array_search("1",$project_settings['preset-type']);
+        if($index !== false){
+            $query = parse_url($project_settings['preset-url'][$index], PHP_URL_QUERY);
+            parse_str($query, $params);
+
+            // Access the integer after "preset_id="
+            return isset($params['preset_id']) ? (int)$params['preset_id'] : null;
+        } else {
+            throw new \Exception("No checked preset for refresher in config.json");
+        }
+    }
+
     /**
      * @param string $type
      * @return void
@@ -106,23 +122,18 @@ class PACE extends AbstractExternalModule
         if($project_settings["current_event"] !== "Done") {
 
             // Grab Rhapsode API data and format
+
+
             $data = $this->fetchRhapsodeData();
             $formatted = $this->formatResponse($data);
+            $refresher_preset = $this->getRefresherPreset();
 
             try {
-                // Grab event name
-                $events = REDCap::getEventNames(TRUE);
-
-                if (empty($project_settings["current_event"])) {
-                    $event_name = $events[$project_settings["start_event"]];
-                } else {
-                    $event_name = $project_settings["current_event"];
-                }
 
                 // Get all user records
                 $params = array(
                     "return_format" => "json",
-                    "fields" => array("screen_surname", "screen_firstname", "participant_id", "consent_time_stamp", "calc_consent_responibilities"),
+                    "fields" => array("screen_surname", "screen_firstname", "participant_id", "consent_time_stamp", "calc_consent_responibilities", "weekly_progress_offset"),
                     "redcap_event_name" => "enrollment_arm_1",
                 );
 
@@ -130,20 +141,57 @@ class PACE extends AbstractExternalModule
 
                 $upload = [];
 
+                // Grab event name
+                $events = REDCap::getEventNames(TRUE);
+                $reindexedEvents = array_values($events);
+
+                $event_name = null;
+
                 foreach ($json as $user) {
-                    $full = strtolower($user['screen_firstname'] . " " . $user['screen_surname']);
+                    $full = strtolower(trim($user['screen_firstname']) . " " . trim($user['screen_surname']));
 
                     // If user exists in Rhapsode data
                     if (array_key_exists($full, $formatted)) {
                         // Build payload for data upload
                         $currentDate = date('Y-m-d');
+                        $keys = array_keys($formatted[$full]); // Get all keys
+                        $refresher_preset = $this->getRefresherPreset();
+
+                        $filteredKeys = array_filter($keys, function ($key) use ($refresher_preset) {
+                            return $key !== $refresher_preset;
+                        });
+                        $classKey = reset($filteredKeys); // Get the first key other than 3515
+                        $offset = (int)($user['weekly_progress_offset']);
+                        if(!$offset){ // First time user is pulling data
+                            $event_name = $events[0]; // Put info in week 0 baseline
+                        } else {
+                            $event_name = $reindexedEvents[$user['weekly_progress_offset']];
+                        }
+
                         $upload[] = array(
                             "participant_id" => $user['participant_id'],
-                            $project_settings["rhapsode_learning_progress"] => str_replace("%", '', $formatted[$full][0]),
-                            $project_settings["rhapsode_refresher_progress"] => str_replace("%", '', $formatted[$full][1]),
-                            $project_settings["rhapsode_latest_activity"] => $formatted[$full][2],
+                            $project_settings['rhapsode_activity_last_week'] => $formatted[$full][$refresher_preset][0],
+                            $project_settings['rhapsode_learning_progress'] => strstr($formatted[$full][$refresher_preset][1], "%", true),
+                            $project_settings['rhapsode_auto_refresh'] => strstr($formatted[$full][$refresher_preset][2], "%", true),
+                            $project_settings['rhapsode_refresh_knowledge'] => strstr($formatted[$full][$refresher_preset][3], "%", true),
+                            $project_settings['rhapsode_refresher_progress'] => strstr($formatted[$full][$refresher_preset][4], "%", true),
+
+                            $project_settings["rhapsode_difficulty_breathing"] => str_replace("%", '', $formatted[$full][$classKey][0]),
+                            $project_settings["rhapsode_term_birth_b"] => str_replace("%", '', $formatted[$full][$classKey][1]),
+                            $project_settings["rhapsode_body_swelling"] => str_replace("%", '', $formatted[$full][$classKey][2]),
+                            $project_settings["rhapsode_fever"] => str_replace("%", '', $formatted[$full][$classKey][3]),
+                            $project_settings["rhapsode_term_birth_a"] => str_replace("%", '', $formatted[$full][$classKey][4]),
+                            $project_settings["rhapsode_diarrhea"] => str_replace("%", '', $formatted[$full][$classKey][5]),
+
                             "redcap_event_name" => $event_name,
-                            "weekly_progress_complete" => "2"
+                            "weekly_progress_complete" => "2",
+
+                        );
+
+                        //Update weekly progress has to be in a different element due to event mismatch
+                        $upload[] = array (
+                            "participant_id" => $user['participant_id'],
+                            "weekly_progress_offset" => $offset += 1
                         );
                     }
                 }
@@ -356,7 +404,9 @@ class PACE extends AbstractExternalModule
         try {
             $user = $this->getSystemSetting('rhapsode-username');
             $pass = $this->getSystemSetting('rhapsode-password');
-            $urls = $this->getProjectSetting('rhapsode-url');
+
+            $pSettings = $this->getProjectSettings();
+            $urls = $pSettings['preset-url'];
             $data = [];
 
             if (empty($user) || empty($pass) || empty($urls))

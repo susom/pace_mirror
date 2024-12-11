@@ -83,25 +83,89 @@
                     ],
                     "required": true
                 }
+
             ]
         },
         {
+            "key": "mapping-fields-description",
+            "type": "descriptive",
+            "name": "<h5><strong>Learner field mapping designations</strong></h5><i>Each Rhapsode field below should be mapped to a REDCap field to store its corresponding data</i>"
+        },
+        {
+            "key": "rhapsode_activity_last_week",
+            "name": "<b>Activity Last week</b><br>REDCap Field that 'activity last week' <i>(Rhapsode variable)</i> will be mirrored to",
+            "required": true,
+            "type": "field-list"
+        },
+        {
             "key": "rhapsode_learning_progress",
-            "name": "<b>Learning Progress Field</b><br>REDCap Field that learning progress % <i>(Rhapsode variable)</i> will be mirrored to",
+            "name": "<b>Learning Progress Field</b><br>REDCap Field that 'learning progress' % <i>(Rhapsode variable)</i> will be mirrored to",
+            "required": true,
+            "type": "field-list"
+        },
+        {
+            "key": "rhapsode_auto_refresh",
+            "name": "<b>Automatically Refresh</b><br>REDCap Field that 'automatically refresh' <i>(Rhapsode variable)</i> will be mirrored to",
+            "required": true,
+            "type": "field-list"
+        },
+        {
+            "key": "rhapsode_refresh_knowledge",
+            "name": "<b>Refresh Knowledge</b><br>REDCap Field that 'refresh knowledge' <i>(Rhapsode variable)</i> will be mirrored to",
             "required": true,
             "type": "field-list"
         },
         {
             "key": "rhapsode_refresher_progress",
-            "name": "<b>Refresher Progress Field</b><br>REDCap Field that refresher progress % <i>(Rhapsode variable)</i> will be mirrored to",
+            "name": "<b>Refresher Progress Field</b><br>REDCap Field that 'overall refresher progress' % <i>(Rhapsode variable)</i> will be mirrored to",
             "required": true,
             "type": "field-list"
         },
         {
-            "key": "rhapsode_latest_activity",
-            "name": "<b>Latest Activity</b><br>REDCap Field that latest activity date <i>(Rhapsode variable)</i> will be mirrored to",
+            "key": "mapping-fields-description-2",
+            "type": "descriptive",
+            "name": "<h5><strong> 6 Class field mapping designations</strong></h5><i>Each Rhapsode field below should be mapped to a REDCap field to store its corresponding data</i>"
+        },
+        {
+            "key": "rhapsode_difficulty_breathing",
+            "name": "<b>Difficulty Breathing Field</b><br>REDCap Field that 'Difficulty breathing' % <i>(Rhapsode variable)</i> will be mirrored to",
             "required": true,
             "type": "field-list"
+        },
+        {
+            "key": "rhapsode_term_birth_b",
+            "name": "<b>Term Birth B Field</b><br>REDCap Field that 'Term Birth B' % <i>(Rhapsode variable)</i> will be mirrored to",
+            "required": true,
+            "type": "field-list"
+        },
+        {
+            "key": "rhapsode_body_swelling",
+            "name": "<b>Body Swelling Field</b><br>REDCap Field that 'Body Swelling' % <i>(Rhapsode variable)</i> will be mirrored to",
+            "required": true,
+            "type": "field-list"
+        },
+        {
+            "key": "rhapsode_fever",
+            "name": "<b>Fever Field</b><br>REDCap Field that 'Fever' % <i>(Rhapsode variable)</i> will be mirrored to",
+            "required": true,
+            "type": "field-list"
+        },
+        {
+            "key": "rhapsode_term_birth_a",
+            "name": "<b>Term Birth A Field</b><br>REDCap Field that 'Term Birth A' % <i>(Rhapsode variable)</i> will be mirrored to",
+            "required": true,
+            "type": "field-list"
+        },
+        {
+            "key": "rhapsode_diarrhea",
+            "name": "<b>Diarrhea Field</b><br>REDCap Field that 'Diarrhea' % <i>(Rhapsode variable)</i> will be mirrored to",
+            "required": true,
+            "type": "field-list"
+        },
+        {
+            "key": "mapping-fields-description-3",
+            "type": "descriptive",
+            "name": "<h5><strong>Misc Fields</strong></h5>"
         },
         {
             "key": "rhapsode_last_updated",

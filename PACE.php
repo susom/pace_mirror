@@ -29,6 +29,7 @@ use ExternalModules\AbstractExternalModule;
 use Exception;
 use REDCap;
 use GuzzleHttp\Exception\GuzzleException;
+use DateTime;
 
 require_once "classes/Client.php";
 
@@ -141,10 +142,6 @@ class PACE extends AbstractExternalModule
 
                 $upload = [];
 
-                // Grab event name
-                $events = REDCap::getEventNames(TRUE);
-                $reindexedEvents = array_values($events);
-
                 $event_name = null;
 
                 foreach ($json as $user) {
@@ -152,47 +149,66 @@ class PACE extends AbstractExternalModule
 
                     // If user exists in Rhapsode data
                     if (array_key_exists($full, $formatted)) {
+
                         // Build payload for data upload
-                        $currentDate = date('Y-m-d');
                         $keys = array_keys($formatted[$full]); // Get all keys
+
+                        // Get specific preset ID based on config.json to determine which variables should be copied
                         $refresher_preset = $this->getRefresherPreset();
 
                         $filteredKeys = array_filter($keys, function ($key) use ($refresher_preset) {
                             return $key !== $refresher_preset;
                         });
-                        $classKey = reset($filteredKeys); // Get the first key other than 3515
+
+                        // Get the key other than preset
+                        $classKey = reset($filteredKeys);
+
                         $offset = (int)($user['weekly_progress_offset']);
-                        if(!$offset){ // First time user is pulling data
-                            $event_name = $events[0]; // Put info in week 0 baseline
-                        } else {
-                            $event_name = $reindexedEvents[$user['weekly_progress_offset']];
+
+                        if ($this->checkValidWeeklyProgressDate($user['consent_time_stamp'], $offset)) {
+                            // Grab events and re-index them
+                            $events = REDCap::getEventNames(TRUE);
+                            $reIndexedEvents = array_values($events);
+
+                            // Determine event name based on offset
+                            $event_name = !$offset ? $reIndexedEvents[0] : $reIndexedEvents[$user['weekly_progress_offset']];
+
+                            // Common data for upload
+                            $commonData = [
+                                "participant_id" => $user['participant_id'],
+                                $project_settings['rhapsode_activity_last_week'] => $formatted[$full][$refresher_preset][0],
+                                $project_settings['rhapsode_learning_progress'] => strstr($formatted[$full][$refresher_preset][1], "%", true),
+                                $project_settings['rhapsode_auto_refresh'] => strstr($formatted[$full][$refresher_preset][2], "%", true),
+                                $project_settings['rhapsode_refresh_knowledge'] => strstr($formatted[$full][$refresher_preset][3], "%", true),
+                                $project_settings['rhapsode_refresher_progress'] => strstr($formatted[$full][$refresher_preset][4], "%", true),
+                                $project_settings["rhapsode_difficulty_breathing"] => str_replace("%", '', $formatted[$full][$classKey][0]),
+                                $project_settings["rhapsode_term_birth_b"] => str_replace("%", '', $formatted[$full][$classKey][1]),
+                                $project_settings["rhapsode_body_swelling"] => str_replace("%", '', $formatted[$full][$classKey][2]),
+                                $project_settings["rhapsode_fever"] => str_replace("%", '', $formatted[$full][$classKey][3]),
+                                $project_settings["rhapsode_term_birth_a"] => str_replace("%", '', $formatted[$full][$classKey][4]),
+                                $project_settings["rhapsode_diarrhea"] => str_replace("%", '', $formatted[$full][$classKey][5]),
+                                "redcap_event_name" => $event_name,
+                                "weekly_progress_complete" => "2",
+                            ];
+
+                            // Ensure no index out of bounds
+                            if($event_name) {
+
+                                // Add offset for week 0 baseline or subsequent weeks
+                                if (!$offset) {
+                                    $commonData["weekly_progress_offset"] = ++$offset; // Increment offset for next upload
+                                    $upload[] = $commonData;
+                                } else {
+                                    $upload[] = $commonData;
+
+                                    // Update weekly progress separately due to event mismatch
+                                    $upload[] = [
+                                        "participant_id" => $user['participant_id'],
+                                        "weekly_progress_offset" => ++$offset,
+                                    ];
+                                }
+                            }
                         }
-
-                        $upload[] = array(
-                            "participant_id" => $user['participant_id'],
-                            $project_settings['rhapsode_activity_last_week'] => $formatted[$full][$refresher_preset][0],
-                            $project_settings['rhapsode_learning_progress'] => strstr($formatted[$full][$refresher_preset][1], "%", true),
-                            $project_settings['rhapsode_auto_refresh'] => strstr($formatted[$full][$refresher_preset][2], "%", true),
-                            $project_settings['rhapsode_refresh_knowledge'] => strstr($formatted[$full][$refresher_preset][3], "%", true),
-                            $project_settings['rhapsode_refresher_progress'] => strstr($formatted[$full][$refresher_preset][4], "%", true),
-
-                            $project_settings["rhapsode_difficulty_breathing"] => str_replace("%", '', $formatted[$full][$classKey][0]),
-                            $project_settings["rhapsode_term_birth_b"] => str_replace("%", '', $formatted[$full][$classKey][1]),
-                            $project_settings["rhapsode_body_swelling"] => str_replace("%", '', $formatted[$full][$classKey][2]),
-                            $project_settings["rhapsode_fever"] => str_replace("%", '', $formatted[$full][$classKey][3]),
-                            $project_settings["rhapsode_term_birth_a"] => str_replace("%", '', $formatted[$full][$classKey][4]),
-                            $project_settings["rhapsode_diarrhea"] => str_replace("%", '', $formatted[$full][$classKey][5]),
-
-                            "redcap_event_name" => $event_name,
-                            "weekly_progress_complete" => "2",
-
-                        );
-
-                        //Update weekly progress has to be in a different element due to event mismatch
-                        $upload[] = array (
-                            "participant_id" => $user['participant_id'],
-                            "weekly_progress_offset" => $offset += 1
-                        );
                     }
                 }
 
@@ -255,6 +271,34 @@ class PACE extends AbstractExternalModule
                 \REDCap::logEvent("Cron failed: Rhapsode pull requested with a done designation in project settings");
         }
 
+    }
+
+    /**
+     * @param $consentDate
+     * @param $offset
+     * @return bool
+     * @throws Exception
+     */
+    public function checkValidWeeklyProgressDate($consentDate, $offset): bool
+    {
+        $pSettings = $this->getProjectSettings();
+
+        if(!$offset) //If no data has been copied before, place in baseline
+            return true;
+
+        if($offset > $pSettings["rhapsode_last_offset"])
+            return false;
+
+
+        $currentDate = new DateTime();
+        $totalDays = 7 * $offset; // Increase days by 7 times (offset + 1)
+        $consent = new DateTime($consentDate);
+
+        $consent->modify("+$totalDays days");
+
+        if($currentDate >= $consent)
+            return true;
+        return false;
     }
 
     /**

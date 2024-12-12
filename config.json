@@ -174,23 +174,12 @@
             "type": "field-list"
         },
         {
-            "key": "start_event",
-            "name": "<b>Starting Event</b><br>First REDCap event to begin copying Rhapsode data into",
+            "key": "rhapsode_last_offset",
+            "name": "<b>Last Offset value</b><br>Offset value used by API to determine which week to stop pulling participant data (After specified week, pulling will stop)",
             "required": true,
-            "type": "event-list"
-        },
-        {
-            "key": "end_event",
-            "name": "<b>Ending Event</b><br>Last REDCap event to end copying Rhapsode data into",
-            "required": true,
-            "type": "event-list"
-        },
-        {
-            "key": "current_event",
-            "name": "<b>Current Event</b><br>Current REDCap event CRON job will copy data into",
-            "required": false,
             "type": "text"
         }
+
     ],
     "crons": [
         {

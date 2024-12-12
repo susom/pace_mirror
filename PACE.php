@@ -80,21 +80,7 @@ class PACE extends AbstractExternalModule
 
     }
 
-    /**
-     * @param $current_event
-     * @param $ending_event
-     */
-    public function updateCurrentEvent($current_event, $ending_event): void
-    {
-        if ($current_event === $ending_event) {
-            $this->setProjectSetting("current_event", "Done");
-        } else { //Increment event name by 1
-            $expl = explode("_", $current_event);
-            $expl[1] = strval(intval($expl[1]) + 1);
-            $fin = implode("_", $expl);
-            $this->setProjectSetting("current_event", $fin);
-        }
-    }
+
 
     public function getRefresherPreset(){
         $project_settings = $this->getProjectSettings();
@@ -135,7 +121,7 @@ class PACE extends AbstractExternalModule
                 $params = array(
                     "return_format" => "json",
                     "fields" => array("screen_surname", "screen_firstname", "participant_id", "consent_time_stamp", "calc_consent_responibilities", "weekly_progress_offset"),
-                    "redcap_event_name" => "enrollment_arm_1",
+                    "events" => "week_0_arm_1",
                 );
 
                 $json = json_decode(REDCap::getData($params), true);
@@ -212,13 +198,14 @@ class PACE extends AbstractExternalModule
                     }
                 }
 
-                if(sizeof($upload)){
+                $size = sizeof($upload);
+                if($size){
                     $response = REDCap::saveData('json', json_encode($upload), 'overwrite');
                     if (!empty($response['errors'])) {
                         throw new Exception("Could not update record with " . json_encode($response['errors']));
                     } else { //Success, update current event
-                        if($type !== "manual")
-                            $this->updateCurrentEvent($event_name, $events[$project_settings["end_event"]]);
+                        $uniqueCount = count(array_unique(array_column($upload, 'participant_id')));
+                        \REDCap::logEvent("$uniqueCount records updated via $type request");
                     }
                 }
 

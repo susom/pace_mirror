@@ -186,7 +186,7 @@
             "cron_name": "mirror_rhapsode_data",
             "cron_description": "This cron will run weekly, hitting the Rhapsode API and massaging data in a format REDCap can consume.",
             "method": "callCron",
-            "cron_frequency": "604800",
+            "cron_frequency": "86400",
             "cron_max_run_time": "3600"
         }
     ],

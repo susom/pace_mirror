@@ -55,27 +55,117 @@
     "project-settings": [
         {
             "key": "rhapsode-url",
-            "name": "<b>Rhapsode API Url</b><br>The API endpoint called on the Rhapsode Client",
+            "name": "<b>Rhapsode API Url Entry</b><br>The API endpoint(s) called on the Rhapsode Client",
             "required": true,
-            "type": "text"
+            "repeatable":true,
+            "type": "sub_settings",
+            "sub_settings":[
+                {
+                    "key": "preset-url",
+                    "name": "<b>API url</b><br>The actual API url to call in each request",
+                    "type": "text",
+                    "required": true
+                },
+                {
+                    "key": "preset-type",
+                    "name": "<b>Learning progress preset</b><br>Set true if the API url for this entry contains the Knowledge & Learning progress fields on Rhapsode",
+                    "type": "dropdown",
+                    "choices": [
+                        {
+                            "name": "False",
+                            "value": 0
+                        },
+                        {
+                            "name": "True",
+                            "value": 1
+                        }
+
+                    ],
+                    "required": true
+                }
+
+            ]
+        },
+        {
+            "key": "mapping-fields-description",
+            "type": "descriptive",
+            "name": "<h5><strong>Learner field mapping designations</strong></h5><i>Each Rhapsode field below should be mapped to a REDCap field to store its corresponding data</i>"
+        },
+        {
+            "key": "rhapsode_activity_last_week",
+            "name": "<b>Activity Last week</b><br>REDCap Field that 'activity last week' <i>(Rhapsode variable)</i> will be mirrored to",
+            "required": true,
+            "type": "field-list"
         },
         {
             "key": "rhapsode_learning_progress",
-            "name": "<b>Learning Progress Field</b><br>REDCap Field that learning progress % <i>(Rhapsode variable)</i> will be mirrored to",
+            "name": "<b>Learning Progress Field</b><br>REDCap Field that 'learning progress' % <i>(Rhapsode variable)</i> will be mirrored to",
+            "required": true,
+            "type": "field-list"
+        },
+        {
+            "key": "rhapsode_auto_refresh",
+            "name": "<b>Automatically Refresh</b><br>REDCap Field that 'automatically refresh' <i>(Rhapsode variable)</i> will be mirrored to",
+            "required": true,
+            "type": "field-list"
+        },
+        {
+            "key": "rhapsode_refresh_knowledge",
+            "name": "<b>Refresh Knowledge</b><br>REDCap Field that 'refresh knowledge' <i>(Rhapsode variable)</i> will be mirrored to",
             "required": true,
             "type": "field-list"
         },
         {
             "key": "rhapsode_refresher_progress",
-            "name": "<b>Refresher Progress Field</b><br>REDCap Field that refresher progress % <i>(Rhapsode variable)</i> will be mirrored to",
+            "name": "<b>Refresher Progress Field</b><br>REDCap Field that 'overall refresher progress' % <i>(Rhapsode variable)</i> will be mirrored to",
             "required": true,
             "type": "field-list"
         },
         {
-            "key": "rhapsode_latest_activity",
-            "name": "<b>Latest Activity</b><br>REDCap Field that latest activity date <i>(Rhapsode variable)</i> will be mirrored to",
+            "key": "mapping-fields-description-2",
+            "type": "descriptive",
+            "name": "<h5><strong> 6 Class field mapping designations</strong></h5><i>Each Rhapsode field below should be mapped to a REDCap field to store its corresponding data</i>"
+        },
+        {
+            "key": "rhapsode_difficulty_breathing",
+            "name": "<b>Difficulty Breathing Field</b><br>REDCap Field that 'Difficulty breathing' % <i>(Rhapsode variable)</i> will be mirrored to",
             "required": true,
             "type": "field-list"
+        },
+        {
+            "key": "rhapsode_term_birth_b",
+            "name": "<b>Term Birth B Field</b><br>REDCap Field that 'Term Birth B' % <i>(Rhapsode variable)</i> will be mirrored to",
+            "required": true,
+            "type": "field-list"
+        },
+        {
+            "key": "rhapsode_body_swelling",
+            "name": "<b>Body Swelling Field</b><br>REDCap Field that 'Body Swelling' % <i>(Rhapsode variable)</i> will be mirrored to",
+            "required": true,
+            "type": "field-list"
+        },
+        {
+            "key": "rhapsode_fever",
+            "name": "<b>Fever Field</b><br>REDCap Field that 'Fever' % <i>(Rhapsode variable)</i> will be mirrored to",
+            "required": true,
+            "type": "field-list"
+        },
+        {
+            "key": "rhapsode_term_birth_a",
+            "name": "<b>Term Birth A Field</b><br>REDCap Field that 'Term Birth A' % <i>(Rhapsode variable)</i> will be mirrored to",
+            "required": true,
+            "type": "field-list"
+        },
+        {
+            "key": "rhapsode_diarrhea",
+            "name": "<b>Diarrhea Field</b><br>REDCap Field that 'Diarrhea' % <i>(Rhapsode variable)</i> will be mirrored to",
+            "required": true,
+            "type": "field-list"
+        },
+        {
+            "key": "mapping-fields-description-3",
+            "type": "descriptive",
+            "name": "<h5><strong>Misc Fields</strong></h5>"
         },
         {
             "key": "rhapsode_last_updated",
@@ -84,30 +174,19 @@
             "type": "field-list"
         },
         {
-            "key": "start_event",
-            "name": "<b>Starting Event</b><br>First REDCap event to begin copying Rhapsode data into",
+            "key": "rhapsode_last_offset",
+            "name": "<b>Last Offset value</b><br>Offset value used by API to determine which week to stop pulling participant data (After specified week, pulling will stop)",
             "required": true,
-            "type": "event-list"
-        },
-        {
-            "key": "end_event",
-            "name": "<b>Ending Event</b><br>Last REDCap event to end copying Rhapsode data into",
-            "required": true,
-            "type": "event-list"
-        },
-        {
-            "key": "current_event",
-            "name": "<b>Current Event</b><br>Current REDCap event CRON job will copy data into",
-            "required": false,
             "type": "text"
         }
+
     ],
     "crons": [
         {
             "cron_name": "mirror_rhapsode_data",
             "cron_description": "This cron will run weekly, hitting the Rhapsode API and massaging data in a format REDCap can consume.",
             "method": "callCron",
-            "cron_frequency": "604800",
+            "cron_frequency": "86400",
             "cron_max_run_time": "3600"
         }
     ],

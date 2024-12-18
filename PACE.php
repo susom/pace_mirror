@@ -99,6 +99,17 @@ class PACE extends AbstractExternalModule
     }
 
     /**
+     * @param $field
+     * @return int
+     */
+    public function convertYNField($field): int
+    {
+        if($field === "yes")
+            return 1;
+        return 0;
+    }
+
+    /**
      * @param string $type
      * @return void
      * @throws GuzzleException
@@ -162,7 +173,7 @@ class PACE extends AbstractExternalModule
                             // Common data for upload
                             $commonData = [
                                 "participant_id" => $user['participant_id'],
-                                $project_settings['rhapsode_activity_last_week'] => $formatted[$full][$refresher_preset][0],
+                                $project_settings['rhapsode_activity_last_week'] => $this->convertYNField($formatted[$full][$refresher_preset][0]),
                                 $project_settings['rhapsode_learning_progress'] => strstr($formatted[$full][$refresher_preset][1], "%", true),
                                 $project_settings['rhapsode_auto_refresh'] => strstr($formatted[$full][$refresher_preset][2], "%", true),
                                 $project_settings['rhapsode_refresh_knowledge'] => strstr($formatted[$full][$refresher_preset][3], "%", true),

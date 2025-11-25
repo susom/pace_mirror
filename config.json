@@ -82,44 +82,38 @@
 
                     ],
                     "required": true
+                },
+                {
+                    "key": "mapping-fields-description",
+                    "type": "descriptive",
+                    "name": "<h5><strong>Learner field mapping designations</strong></h5><i>Each Rhapsode field below should be mapped to a REDCap field to store its corresponding data</i>"
+                },
+                {
+                    "key": "rhapsode_learning_progress",
+                    "name": "<b>Learning Progress Field</b><br>REDCap Field that 'learning progress' % <i>(Rhapsode variable)</i> will be mirrored to",
+                    "required": true,
+                    "type": "field-list"
+                },
+                {
+                    "key": "rhapsode_refresher_progress",
+                    "name": "<b>Refresher Progress Field</b><br>REDCap Field that 'overall refresher progress' % <i>(Rhapsode variable)</i> will be mirrored to",
+                    "required": true,
+                    "type": "field-list"
+                },
+                {
+                    "key": "rhapsode_auto_refresh",
+                    "name": "<b>Automatically Refresh</b><br>REDCap Field that 'automatically refresh' <i>(Rhapsode variable)</i> will be mirrored to",
+                    "required": true,
+                    "type": "field-list"
+                },
+                {
+                    "key": "rhapsode_refresh_knowledge",
+                    "name": "<b>Refresh Knowledge</b><br>REDCap Field that 'refresh knowledge' <i>(Rhapsode variable)</i> will be mirrored to",
+                    "required": true,
+                    "type": "field-list"
                 }
 
             ]
-        },
-        {
-            "key": "mapping-fields-description",
-            "type": "descriptive",
-            "name": "<h5><strong>Learner field mapping designations</strong></h5><i>Each Rhapsode field below should be mapped to a REDCap field to store its corresponding data</i>"
-        },
-        {
-            "key": "rhapsode_activity_last_week",
-            "name": "<b>Activity Last week</b><br>REDCap Field that 'activity last week' <i>(Rhapsode variable)</i> will be mirrored to",
-            "required": true,
-            "type": "field-list"
-        },
-        {
-            "key": "rhapsode_learning_progress",
-            "name": "<b>Learning Progress Field</b><br>REDCap Field that 'learning progress' % <i>(Rhapsode variable)</i> will be mirrored to",
-            "required": true,
-            "type": "field-list"
-        },
-        {
-            "key": "rhapsode_auto_refresh",
-            "name": "<b>Automatically Refresh</b><br>REDCap Field that 'automatically refresh' <i>(Rhapsode variable)</i> will be mirrored to",
-            "required": true,
-            "type": "field-list"
-        },
-        {
-            "key": "rhapsode_refresh_knowledge",
-            "name": "<b>Refresh Knowledge</b><br>REDCap Field that 'refresh knowledge' <i>(Rhapsode variable)</i> will be mirrored to",
-            "required": true,
-            "type": "field-list"
-        },
-        {
-            "key": "rhapsode_refresher_progress",
-            "name": "<b>Refresher Progress Field</b><br>REDCap Field that 'overall refresher progress' % <i>(Rhapsode variable)</i> will be mirrored to",
-            "required": true,
-            "type": "field-list"
         },
         {
             "key": "mapping-fields-description-2",

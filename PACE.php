@@ -81,13 +81,13 @@ class PACE extends AbstractExternalModule
     }
 
 
-
-    public function getRefresherPreset(){
+    public function getRefresherPreset()
+    {
         $project_settings = $this->getProjectSettings();
         $ret = [];
 
-        $index = array_search("1",$project_settings['preset-type']);
-        if($index !== false){
+        $index = array_search("1", $project_settings['preset-type']);
+        if ($index !== false) {
             $query = parse_url($project_settings['preset-url'][$index], PHP_URL_QUERY);
             parse_str($query, $params);
 
@@ -104,9 +104,113 @@ class PACE extends AbstractExternalModule
      */
     public function convertYNField($field): int
     {
-        if($field === "yes")
+        if ($field === "yes")
             return 1;
         return 0;
+    }
+
+    private function getPresentMappedFields($presentId): array
+    {
+        /**
+         * Find and return the subsetting that matches a given preset id.
+         *
+         * - Retrieves subsettings from project config key `rhapsode-url`.
+         * - Parses each subsetting's `preset-url` query string and compares the
+         *   `preset_id` parameter to the provided `$presentId`.
+         * - Returns the matching subsetting array or an empty array if none found.
+         *
+         * @param int|string $presentId The preset id to find (int or string accepted).
+         * @return array The matching subsetting or an empty array if not found.
+         */
+
+        $subsettings = $this->getSubSettings('rhapsode-url');
+
+        // Validate that we have an iterable list of subsettings
+        if (empty($subsettings) || !is_array($subsettings)) {
+            return [];
+        }
+
+        foreach ($subsettings as $subsetting) {
+            // Ensure expected key exists before using it
+            if (empty($subsetting['preset-url']) || !is_string($subsetting['preset-url'])) {
+                continue;
+            }
+
+            $preset = $subsetting['preset-url'];
+            $query = parse_url($preset, PHP_URL_QUERY);
+
+            // Skip if no query string present
+            if (empty($query)) {
+                continue;
+            }
+
+            parse_str($query, $params);
+
+            // Ensure the preset_id param exists
+            if (!isset($params['preset_id'])) {
+                continue;
+            }
+
+            // Compare as strings to avoid type-mismatch issues coming from parsed query
+            if ((string)$params['preset_id'] === (string)$presentId) {
+                return $subsetting;
+            }
+        }
+
+        return [];
+    }
+
+
+    /**
+     * Find and return the classic preset id (preset-type == '0') from subsettings.
+     *
+     * - Retrieves subsettings from project config key `rhapsode-url`.
+     * - Validates structure and types before using values.
+     * - Safely parses the `preset-url` query string and returns `preset_id` as an int.
+     *
+     * @return int|null The found preset id as an integer, or null if not found.
+     */
+    private function getClassicPresetId(): ?int
+    {
+        $subsettings = $this->getSubSettings('rhapsode-url');
+
+        if (empty($subsettings) || !is_array($subsettings)) {
+            return null;
+        }
+
+        foreach ($subsettings as $subsetting) {
+            if (!is_array($subsetting)) {
+                continue;
+            }
+
+            // Ensure expected keys exist and have usable types
+            if (!isset($subsetting['preset-type']) || !isset($subsetting['preset-url'])) {
+                continue;
+            }
+
+            if ((string)$subsetting['preset-type'] !== '0') {
+                continue;
+            }
+
+            $preset = $subsetting['preset-url'];
+            if (!is_string($preset) || $preset === '') {
+                continue;
+            }
+
+            $query = parse_url($preset, PHP_URL_QUERY);
+            if (empty($query)) {
+                continue;
+            }
+
+            parse_str($query, $params);
+            if (!isset($params['preset_id']) || $params['preset_id'] === '') {
+                continue;
+            }
+
+            return (int)$params['preset_id'];
+        }
+
+        return null;
     }
 
     /**
@@ -117,7 +221,7 @@ class PACE extends AbstractExternalModule
     public function mirrorRhapsode($type): void
     {
         $project_settings = $this->getProjectSettings();
-        if($project_settings["current_event"] !== "Done") {
+        if ($project_settings["current_event"] !== "Done") {
 
             // Grab Rhapsode API data and format
 
@@ -158,7 +262,7 @@ class PACE extends AbstractExternalModule
                         });
 
                         // Get the key other than preset
-                        $classKey = reset($filteredKeys);
+                        $classKey = $this->getClassicPresetId();
 
                         $offset = (int)($user['weekly_progress_offset']);
 
@@ -173,23 +277,33 @@ class PACE extends AbstractExternalModule
                             // Common data for upload
                             $commonData = [
                                 "participant_id" => $user['participant_id'],
-                                $project_settings['rhapsode_activity_last_week'] => $this->convertYNField($formatted[$full][$refresher_preset][0]),
-                                $project_settings['rhapsode_learning_progress'] => strstr($formatted[$full][$refresher_preset][1], "%", true),
-                                $project_settings['rhapsode_auto_refresh'] => strstr($formatted[$full][$refresher_preset][2], "%", true),
-                                $project_settings['rhapsode_refresh_knowledge'] => strstr($formatted[$full][$refresher_preset][3], "%", true),
-                                $project_settings['rhapsode_refresher_progress'] => strstr($formatted[$full][$refresher_preset][4], "%", true),
-                                $project_settings["rhapsode_difficulty_breathing"] => str_replace("%", '', $formatted[$full][$classKey][0]),
+                                //$project_settings["rhapsode_difficulty_breathing"] => str_replace("%", '', $formatted[$full][$classKey][0]), NO LONGER COLLECTING
                                 $project_settings["rhapsode_term_birth_b"] => str_replace("%", '', $formatted[$full][$classKey][1]),
                                 $project_settings["rhapsode_body_swelling"] => str_replace("%", '', $formatted[$full][$classKey][2]),
-                                $project_settings["rhapsode_fever"] => str_replace("%", '', $formatted[$full][$classKey][3]),
-                                $project_settings["rhapsode_term_birth_a"] => str_replace("%", '', $formatted[$full][$classKey][4]),
-                                $project_settings["rhapsode_diarrhea"] => str_replace("%", '', $formatted[$full][$classKey][5]),
+                                //$project_settings["rhapsode_fever"] => str_replace("%", '', $formatted[$full][$classKey][3]), NO LONGER COLLECTING
+                                //$project_settings["rhapsode_term_birth_a"] => str_replace("%", '', $formatted[$full][$classKey][4]), NO LONGER COLLECTING
+                                //$project_settings["rhapsode_diarrhea"] => str_replace("%", '', $formatted[$full][$classKey][5]),  NO LONGER COLLECTING
                                 "redcap_event_name" => $event_name,
                                 "weekly_progress_complete" => "2",
                             ];
 
+                            // loop over defined presets to get mapped fields and set their values
+                            if (!empty($filteredKeys)) {
+                                foreach ($filteredKeys as $key) {
+                                    $fields = $this->getPresentMappedFields($key);
+                                    if (!empty($fields)) {
+                                        $commonData[$fields['rhapsode_learning_progress']] = strstr($formatted[$full][$key][1], "%", true);
+                                        $commonData[$fields['rhapsode_auto_refresh']] = strstr($formatted[$full][$key][2], "%", true);
+                                        $commonData[$fields['rhapsode_refresh_knowledge']] = strstr($formatted[$full][$key][3], "%", true);
+                                        $commonData[$fields['rhapsode_refresher_progress']] = strstr($formatted[$full][$key][4], "%", true);;
+                                    }
+
+                                }
+                            }
+
+
                             // Ensure no index out of bounds
-                            if($event_name) {
+                            if ($event_name) {
 
                                 // Add offset for week 0 baseline or subsequent weeks
                                 if (!$offset) {
@@ -210,7 +324,7 @@ class PACE extends AbstractExternalModule
                 }
 
                 $size = sizeof($upload);
-                if($size){
+                if ($size) {
                     $response = REDCap::saveData('json', json_encode($upload), 'overwrite');
                     if (!empty($response['errors'])) {
                         throw new Exception("Could not update record with " . json_encode($response['errors']));
@@ -219,7 +333,6 @@ class PACE extends AbstractExternalModule
                         \REDCap::logEvent("$uniqueCount records updated via $type request");
                     }
                 }
-
 
 
                 // WHATS APP INTEGRATION STEP
@@ -254,16 +367,12 @@ class PACE extends AbstractExternalModule
 //                }
 
 
-
-
-
-
             } catch (\Exception $e) {
                 $this->emError($e);
                 \REDCap::logEvent("Error: $e");
             }
         } else {
-            if($type === "manual")
+            if ($type === "manual")
                 \REDCap::logEvent("Manual data pull failed: Rhapsode pull requested with a done designation in project settings");
             else
                 \REDCap::logEvent("Cron failed: Rhapsode pull requested with a done designation in project settings");
@@ -281,10 +390,10 @@ class PACE extends AbstractExternalModule
     {
         $pSettings = $this->getProjectSettings();
 
-        if(!$offset) //If no data has been copied before, place in baseline
+        if (!$offset) //If no data has been copied before, place in baseline
             return true;
 
-        if($offset > $pSettings["rhapsode_last_offset"])
+        if ($offset > $pSettings["rhapsode_last_offset"])
             return false;
 
 
@@ -294,7 +403,7 @@ class PACE extends AbstractExternalModule
 
         $consent->modify("+$totalDays days");
 
-        if($currentDate >= $consent)
+        if ($currentDate >= $consent)
             return true;
         return false;
     }
@@ -322,7 +431,8 @@ class PACE extends AbstractExternalModule
         }
     }
 
-    private function massageJson($input) {
+    private function massageJson($input)
+    {
         $string = $this->replaceNbsp($input, "  ");
         $junk = [
             "<p>",
@@ -402,8 +512,9 @@ class PACE extends AbstractExternalModule
      * @param $replacement
      * @return array|string|string[]
      */
-    private function replaceNbsp ($string, $replacement = '  ') {
-        $funky="|!|";
+    private function replaceNbsp($string, $replacement = '  ')
+    {
+        $funky = "|!|";
         $entities = htmlentities($string, ENT_NOQUOTES, 'UTF-8');
         $subbed = str_replace("&nbsp; ", $funky, $entities);
         $decoded = html_entity_decode($subbed);
@@ -413,14 +524,14 @@ class PACE extends AbstractExternalModule
     /**
      *
      */
-    public function fetchAlerts(){
+    public function fetchAlerts()
+    {
         $pid = $this->getProjectId();
         $sql = sprintf("SELECT * from redcap_alerts WHERE project_id = $pid AND email_deleted = '0'");
         $res = db_query($sql);
         $alerts = [];
-        while ($row = db_fetch_assoc($res))
-        {
-            $alerts[]=$row;
+        while ($row = db_fetch_assoc($res)) {
+            $alerts[] = $row;
         }
 //        $data = db_fetch_assoc($res);
 //        foreach($data as $a)
@@ -431,7 +542,8 @@ class PACE extends AbstractExternalModule
     /**
      * @return void
      */
-    public function logCronTrigger(){
+    public function logCronTrigger()
+    {
         \REDCap::logEvent("Cron started");
     }
 
@@ -454,7 +566,7 @@ class PACE extends AbstractExternalModule
             if (empty($user) || empty($pass) || empty($urls))
                 throw new \Exception("Empty system and / or project settings");
 
-            foreach($urls as $preset) {
+            foreach ($urls as $preset) {
                 $query = parse_url($preset, PHP_URL_QUERY);
                 parse_str($query, $params);
 
@@ -482,7 +594,7 @@ class PACE extends AbstractExternalModule
     public function formatResponse(array $data): array
     {
         $ret = [];
-        foreach($data as $preset_id => $entry) {
+        foreach ($data as $preset_id => $entry) {
             $lines = explode("\n", $entry);
 
 

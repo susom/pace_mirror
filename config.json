@@ -67,23 +67,6 @@
                     "required": true
                 },
                 {
-                    "key": "preset-type",
-                    "name": "<b>Learning progress preset</b><br>Set true if the API url for this entry contains the Knowledge & Learning progress fields on Rhapsode",
-                    "type": "dropdown",
-                    "choices": [
-                        {
-                            "name": "False",
-                            "value": 0
-                        },
-                        {
-                            "name": "True",
-                            "value": 1
-                        }
-
-                    ],
-                    "required": true
-                },
-                {
                     "key": "mapping-fields-description",
                     "type": "descriptive",
                     "name": "<h5><strong>Learner field mapping designations</strong></h5><i>Each Rhapsode field below should be mapped to a REDCap field to store its corresponding data</i>"
@@ -118,7 +101,13 @@
         {
             "key": "mapping-fields-description-2",
             "type": "descriptive",
-            "name": "<h5><strong> 6 Class field mapping designations</strong></h5><i>Each Rhapsode field below should be mapped to a REDCap field to store its corresponding data</i>"
+            "name": "<hr><h5><strong>Classic designation API URL and 6 Class field mapping designations</strong></h5><i>Each Rhapsode field below should be mapped to a REDCap field to store its corresponding data</i>"
+        },
+        {
+            "key": "classic-designations-url",
+            "name": "<b>Classic Designation API url</b><br>The actual API url to call in each request",
+            "type": "text",
+            "required": true
         },
         {
             "key": "rhapsode_difficulty_breathing",

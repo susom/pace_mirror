@@ -81,23 +81,6 @@ class PACE extends AbstractExternalModule
     }
 
 
-    public function getRefresherPreset()
-    {
-        $project_settings = $this->getProjectSettings();
-        $ret = [];
-
-        $index = array_search("1", $project_settings['preset-type']);
-        if ($index !== false) {
-            $query = parse_url($project_settings['preset-url'][$index], PHP_URL_QUERY);
-            parse_str($query, $params);
-
-            // Access the integer after "preset_id="
-            return isset($params['preset_id']) ? (int)$params['preset_id'] : null;
-        } else {
-            throw new \Exception("No checked preset for refresher in config.json");
-        }
-    }
-
     /**
      * @param $field
      * @return int
@@ -170,47 +153,25 @@ class PACE extends AbstractExternalModule
      *
      * @return int|null The found preset id as an integer, or null if not found.
      */
-    private function getClassicPresetId(): ?int
+    private function getClassicDesignationsId(): ?int
     {
-        $subsettings = $this->getSubSettings('rhapsode-url');
+        $classicURL = $this->getProjectSetting('classic-designations-url');
 
-        if (empty($subsettings) || !is_array($subsettings)) {
+        if (empty($classicURL)) {
             return null;
         }
 
-        foreach ($subsettings as $subsetting) {
-            if (!is_array($subsetting)) {
-                continue;
-            }
-
-            // Ensure expected keys exist and have usable types
-            if (!isset($subsetting['preset-type']) || !isset($subsetting['preset-url'])) {
-                continue;
-            }
-
-            if ((string)$subsetting['preset-type'] !== '0') {
-                continue;
-            }
-
-            $preset = $subsetting['preset-url'];
-            if (!is_string($preset) || $preset === '') {
-                continue;
-            }
-
-            $query = parse_url($preset, PHP_URL_QUERY);
-            if (empty($query)) {
-                continue;
-            }
-
-            parse_str($query, $params);
-            if (!isset($params['preset_id']) || $params['preset_id'] === '') {
-                continue;
-            }
-
-            return (int)$params['preset_id'];
+        $query = parse_url($classicURL, PHP_URL_QUERY);
+        if (empty($query)) {
+            return null;
         }
 
-        return null;
+        parse_str($query, $params);
+        if (!isset($params['preset_id']) || $params['preset_id'] === '') {
+            return null;
+        }
+
+        return (int)$params['preset_id'];
     }
 
     /**
@@ -228,7 +189,6 @@ class PACE extends AbstractExternalModule
 
             $data = $this->fetchRhapsodeData();
             $formatted = $this->formatResponse($data);
-            $refresher_preset = $this->getRefresherPreset();
 
             try {
 
@@ -255,14 +215,14 @@ class PACE extends AbstractExternalModule
                         $keys = array_keys($formatted[$full]); // Get all keys
 
                         // Get specific preset ID based on config.json to determine which variables should be copied
-                        $refresher_preset = $this->getRefresherPreset();
-
-                        $filteredKeys = array_filter($keys, function ($key) use ($refresher_preset) {
-                            return $key !== $refresher_preset;
-                        });
+//                        $refresher_preset = $this->getRefresherPreset();
+//
+//                        $filteredKeys = array_filter($keys, function ($key) use ($refresher_preset) {
+//                            return $key !== $refresher_preset;
+//                        });
 
                         // Get the key other than preset
-                        $classKey = $this->getClassicPresetId();
+                        $classKey = $this->getClassicDesignationsId();
 
                         $offset = (int)($user['weekly_progress_offset']);
 
@@ -288,14 +248,14 @@ class PACE extends AbstractExternalModule
                             ];
 
                             // loop over defined presets to get mapped fields and set their values
-                            if (!empty($filteredKeys)) {
-                                foreach ($filteredKeys as $key) {
+                            if (!empty($keys)) {
+                                foreach ($keys as $key) {
                                     $fields = $this->getPresentMappedFields($key);
                                     if (!empty($fields)) {
-                                        $commonData[$fields['rhapsode_learning_progress']] = strstr($formatted[$full][$key][1], "%", true);
-                                        $commonData[$fields['rhapsode_auto_refresh']] = strstr($formatted[$full][$key][2], "%", true);
-                                        $commonData[$fields['rhapsode_refresh_knowledge']] = strstr($formatted[$full][$key][3], "%", true);
-                                        $commonData[$fields['rhapsode_refresher_progress']] = strstr($formatted[$full][$key][4], "%", true);;
+                                        $commonData[$fields['rhapsode_learning_progress']] = strstr($formatted[$full][$key][2], "%", true);
+                                        $commonData[$fields['rhapsode_auto_refresh']] = strstr($formatted[$full][$key][3], "%", true);
+                                        $commonData[$fields['rhapsode_refresh_knowledge']] = strstr($formatted[$full][$key][4], "%", true);
+                                        $commonData[$fields['rhapsode_refresher_progress']] = strstr($formatted[$full][$key][5], "%", true);;
                                     }
 
                                 }
@@ -561,11 +521,14 @@ class PACE extends AbstractExternalModule
 
             $pSettings = $this->getProjectSettings();
             $urls = $pSettings['preset-url'];
+            // add classic designation URL
+            $urls[] = $this->getProjectSetting('classic-designations-url');
             $data = [];
 
             if (empty($user) || empty($pass) || empty($urls))
                 throw new \Exception("Empty system and / or project settings");
 
+            $client = new Client($user, $pass);
             foreach ($urls as $preset) {
                 $query = parse_url($preset, PHP_URL_QUERY);
                 parse_str($query, $params);
@@ -573,7 +536,7 @@ class PACE extends AbstractExternalModule
                 // Access the integer after "preset_id="
                 $presetId = isset($params['preset_id']) ? (int)$params['preset_id'] : null;
 
-                $client = new Client($user, $pass);
+
                 $data[$presetId] = $client->createRequest('GET', $preset);
             }
 

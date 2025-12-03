@@ -203,6 +203,7 @@ class PACE extends AbstractExternalModule
 
                 $upload = [];
 
+                $lastActivityField = $this->getProjectSetting('rhapsode_activity_last_week');
                 $event_name = null;
 
                 foreach ($json as $user) {
@@ -256,10 +257,18 @@ class PACE extends AbstractExternalModule
                                         $commonData[$fields['rhapsode_auto_refresh']] = strstr($formatted[$full][$key][3], "%", true);
                                         $commonData[$fields['rhapsode_refresh_knowledge']] = strstr($formatted[$full][$key][4], "%", true);
                                         $commonData[$fields['rhapsode_refresher_progress']] = strstr($formatted[$full][$key][5], "%", true);;
+
+                                        // rhapsode_activity_last_week if not set or its false.
+                                        $lastActivity = $formatted[$full][$key][0];
+                                        if(!isset($commonData[$lastActivityField]) or $commonData[$lastActivityField] == 'no'){
+                                            $commonData[$lastActivityField] = $lastActivity == 'yes'?1:0;
+                                        }
+
                                     }
 
                                 }
                             }
+
 
 
                             // Ensure no index out of bounds

@@ -161,6 +161,12 @@
             "name": "<b>Last Offset value</b><br>Offset value used by API to determine which week to stop pulling participant data (After specified week, pulling will stop)",
             "required": true,
             "type": "text"
+        },
+        {
+            "key": "rhapsode_activity_last_week",
+            "name": "<b>Activity Last week</b><br>REDCap Field that 'activity last week' <i>(Rhapsode variable)</i> will be mirrored to",
+            "required": true,
+            "type": "field-list"
         }
 
     ],
